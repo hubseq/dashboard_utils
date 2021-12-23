@@ -15,7 +15,8 @@ import flask
 import dashboard_file_utils as dfu
 import dashboard_plot_utils as dpu
 import dashboard_server_utils as dsu
-import dashboard_functions as dfunc
+import dashboard_plots_main as dpm
+import dashboard_plots_dnaseq_targeted as dpdt
 
 sys.path.append('global_utils/src/')
 import file_utils
@@ -41,21 +42,21 @@ def serve_layout():
     global dfs
     SESSION_ID = str(uuid.uuid4())
     USER_ID = global_keys.USER_ID  # constant for now. FUTURE: get user ID from client.
-    dfs = initDataframe( SESSION_ID )
-    return dfunc.renderDashboard_main(USER_ID, SESSION_ID, PIPELINE_ID)
+    dfs = dpdt.initDataframe( SESSION_ID ) # user needs to define structure of data frame
+    return dpm.renderDashboard_main(USER_ID, SESSION_ID, PIPELINE_ID)
 
 app.layout = serve_layout
 
 ############################################################
 ## CALLBACK FUNCTIONS
 ############################################################
-dfunc.defineCallbacks_mainDashboard(app)
-
-dfunc.defineCallbacks_fastqcAnalysisDashboard(app)
-dfunc.defineCallbacks_barcodeqcAnalysisDashboard(app)
-dfunc.defineCallbacks_alignmentPanelAnalysisDashboard(app)
-dfunc.defineCallbacks_coverageAnalysisDashboard(app)
-dfunc.defineCallbacks_variantAnalysisDashboard(app)
+dpm.defineCallbacks_mainDashboard(app)
+dpdt.defineCallbacks_DNASeqTargetedAnalysisList(app)
+dpdt.defineCallbacks_fastqcAnalysisDashboard(app)
+# dpdt.defineCallbacks_barcodeqcAnalysisDashboard(app)
+dpdt.defineCallbacks_alignmentPanelAnalysisDashboard(app)
+# dpdt.defineCallbacks_coverageAnalysisDashboard(app)
+# dpdt.defineCallbacks_variantAnalysisDashboard(app)
 
 """
 @app.callback(

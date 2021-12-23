@@ -8,6 +8,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+############################################################
+## CONSTANTS USED BY PLOTS
+############################################################
 PLOT_HEIGHT_DEFAULT = 800
 
 ############################################################
@@ -33,6 +36,7 @@ class Plot:
         self.yrange = (min(y), max(y))
         self.plot_df = pd.DataFrame()
         self.options = {}
+        self.figure_object = None
 
     def createDataFrame(self):
         """ Creates a dataframe out of x and y, using xlabel and ylabel as column labels
@@ -109,6 +113,16 @@ class Plot:
         """
         self.plot_type = _pt
 
+    def setFigureObject(self, _fo):
+        """ Sets plot (figure) object
+        """
+        self.figure_object = _fo
+
+    def setFigureLayout_default(self):
+        """ Sets figure object to set a default layout.
+        """
+        return updateFigureLayout_default()
+
     # getters
     def getDataFrame(self):
         return self.plot_df
@@ -146,6 +160,20 @@ class Plot:
     def getPlotType(self):
         return self.plot_type
 
+    def getFigureObject(self):
+        """ Sets graphical figure object
+        """
+        return self.figure_object
+
+    # update functions
+    def updateFigureLayout_default(self):
+        """ Updates figure object to set a default layout.
+        """
+        if self.figure_object != None:
+            self.figure_object.update_layout(transition_duration=250, xaxis_tickangle=-90,uniformtext_minsize=8, uniformtext_mode='hide', title_x=0.5)
+        return self.figure_object
+
+
 
 def createPlotObject( plot_type, x, y, xlabel = 'x', ylabel = 'y', title = ''):
     """ Creates a Plot class object
@@ -166,8 +194,9 @@ def plotScatterObject( p ):
     """ Creates a scatter plot from a Plot object.
     """
     p.addOptions(options)
-    p_plot = px.scatter(x=p.getX(), y=p.getY(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT)
-    return p, p_plot
+    p.setFigureObject(px.scatter(x=p.getX(), y=p.getY(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT))
+    p.updateFigureLayout()
+    return p
 
 
 def plotBar( x, y, xlabel = 'x', ylabel = 'y', title = '', options = {}):
@@ -181,8 +210,9 @@ def plotBarObject( p ):
     """
     p.addOptions(options)
     p.createDataFrame()
-    p_plot = px.bar(p.getDataFrame(), x=p.getXLabel(), y=p.getYLabel(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT)
-    return p, p_plot
+    p.setFigureObject(px.bar(p.getDataFrame(), x=p.getXLabel(), y=p.getYLabel(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT))
+    p.updateFigureLayout()
+    return p
 
 
 def plotHistogram( x, xlabel = 'x', ylabel = 'y', title = '', options = {}):
@@ -199,7 +229,8 @@ def plotHistogramObject( p ):
     # px.histogram(p.getX(), nbins=100, title=p.getTitle(), log_y=True)
     p_plot = go.Figure(go.Histogram(x=p.getX()))
     p_plot.update_layout( title_text=p.getTitle(), xaxis_title_text=p.getXLabel(), yaxis_title_text=p.getYLabel())
-    return p, p_plot
+    p.setFigureObject(p_plot)
+    return p
 
 
 def plotViolin( x, y, xlabel = 'x', ylabel = 'y', title = '', options = {}):
@@ -213,8 +244,9 @@ def plotViolinObject( p ):
     """
     p.addOptions(options)
     p.createDataFrame()
-    p_plot = px.violin(x=p.getX(), y=p.getY(), title=p.getTitle(), box=True, height=PLOT_HEIGHT_DEFAULT)
-    return p, p_plot
+    p.setFigureObject(px.violin(x=p.getX(), y=p.getY(), title=p.getTitle(), box=True, height=PLOT_HEIGHT_DEFAULT))
+    p.updateFigureLayout()
+    return p
 
 
 # empty placeholder plots
