@@ -6,9 +6,9 @@
 #
 import sys, os, csv, uuid, socket
 import dash
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dash_table
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 import pandas as pd
 import flask
@@ -42,7 +42,7 @@ def serve_layout():
     global dfs
     SESSION_ID = str(uuid.uuid4())
     USER_ID = global_keys.USER_ID  # constant for now. FUTURE: get user ID from client.
-    dfs = dpdt.initDataframe( SESSION_ID ) # user needs to define structure of data frame
+    dfs = dpdt.initDataframe( PIPELINE_ID, SESSION_ID ) # user needs to define structure of data frame
     return dpm.renderDashboard_main(USER_ID, SESSION_ID, PIPELINE_ID)
 
 app.layout = serve_layout

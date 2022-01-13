@@ -4,6 +4,7 @@
 # Utility functions for retrieving and writing files given Dashboard inputs.
 # Makes heavy use of the general file_utils script within the global utils repository.
 #
+import sys
 sys.path.append('global_utils/src/')
 import global_keys
 import file_utils

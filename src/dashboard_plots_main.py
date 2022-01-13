@@ -5,9 +5,9 @@
 #
 import sys, os, csv, uuid
 import dash
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dash_table
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 import pandas as pd
 import flask
@@ -20,7 +20,7 @@ def renderDashboard_main(userid, sessionid, pipelineid):
     """ Renders the main dashboard.
     """
     pipeline_list = dsu.list2optionslist([pipelineid])
-    dashboard == 'Pipeline Data Analysis Dashboard':
+    dashboard = 'Pipeline Data Analysis Dashboard'
     return html.Div([
         html.H3(dashboard),
         html.Div(userid, id='USER_ID', style={'display': 'none'}, key=userid),
