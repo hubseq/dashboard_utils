@@ -24,6 +24,7 @@ import global_keys
 
 external_stylesheets = dsu.DASH_STYLESHEETS
 STATIC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), dsu.USER_SCRATCH_DIR)
+SERVER_PORT = '5000'
 SESSION_ID = '.'
 USER_ID = '.'
 PIPELINE_ID = 'Targeted DNA Sequencing'
@@ -553,4 +554,4 @@ def serve_static(resource):
 
 if __name__ == '__main__':
     local_ip = socket.gethostbyname(socket.gethostname())
-    app.run_server(host=local_ip, port='8050', debug=False,dev_tools_ui=False,dev_tools_props_check=False)
+    app.run_server(host=local_ip, port=SERVER_PORT, debug=False,dev_tools_ui=False,dev_tools_props_check=False)
