@@ -23,16 +23,16 @@ import file_utils
 import global_keys
 
 external_stylesheets = dsu.DASH_STYLESHEETS
-STATIC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), dsu.USER_SCRATCH_DIR)
 SERVER_PORT = '5000'
-SESSION_ID = '.'
-USER_ID = '.'
-PIPELINE_ID = 'Targeted DNA Sequencing'
+# SESSION_ID = 'tempsession'
+TEAM_ID = 'npipublicinternal' # constant for now. FUTURE: get ID from client.
+USER_ID = 'test' # constant for now. FUTURE: get ID from client.
+PIPELINE_NAME = 'Targeted DNA Sequencing'
 
 # main Pandas dataframe that contains all data to display on dashboard
-dfs = {}
+# dfs = {}
 # log files for each sample - has info about each pipeline run
-dflogs = {}
+# dflogs = {}
 
 ############################################################
 ## APP OBJECT AND SERVE FRONTEND LAYOUT
@@ -40,24 +40,38 @@ dflogs = {}
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 
 def serve_layout():
-    global dfs
-    SESSION_ID = str(uuid.uuid4())
-    USER_ID = global_keys.USER_ID  # constant for now. FUTURE: get user ID from client.
-    dfs = dpdt.initDataframe( PIPELINE_ID, SESSION_ID ) # user needs to define structure of data frame
-    return dpm.renderDashboard_main(USER_ID, SESSION_ID, PIPELINE_ID)
+#    global dfs
+    print('in serve_layout()')
+    return dpm.renderDashboard_main(TEAM_ID, USER_ID, dsu.DNASEQ_TARGETED_PIPELINE_ID)
 
 app.layout = serve_layout
 
 ############################################################
 ## CALLBACK FUNCTIONS
 ############################################################
+"""
+@app.callback(
+    Output('graphdiv', 'children'),
+    Input('choose-samples', 'options'),
+    Input('choose-runs', 'options'),
+    Input('choose-pipeline', 'value'),
+    Input('choose-analysis', 'options'),
+    State('teamid', 'key'),
+    State('userid', 'key'))
+def CB_choose_test(s, r, p, a, t, u):
+    print('in CB_choose_test callback')
+    print('{} {} {} {} {} {}'.format(str(s), str(r), str(p), str(a), str(t), str(u)))
+    return []
+"""
 dpm.defineCallbacks_mainDashboard(app)
+dpdt.defineCallbacks_DNASeqTargetedDashboardList(app)
 dpdt.defineCallbacks_DNASeqTargetedAnalysisList(app)
 dpdt.defineCallbacks_fastqcAnalysisDashboard(app)
 # dpdt.defineCallbacks_barcodeqcAnalysisDashboard(app)
 dpdt.defineCallbacks_alignmentPanelAnalysisDashboard(app)
 # dpdt.defineCallbacks_coverageAnalysisDashboard(app)
 # dpdt.defineCallbacks_variantAnalysisDashboard(app)
+
 
 """
 @app.callback(
@@ -328,7 +342,7 @@ def update_figure(sampleids, selected_samplesfull, selected_runs, selected_subru
                 s_name = rawnames_all[k]
                 f = rawfiles_all[k]
                 f_name = f.split('/')[-1]
-                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(STATIC_PATH,f_name), children=s_name + ': '+f_name)))
+                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(dsu.STATIC_PATH,f_name), children=s_name + ': '+f_name)))
             graphs.append(html.Ul(id='raw-files', children=list_elements))
 
         if 'fastqc' in selected_qcplots:
@@ -341,7 +355,7 @@ def update_figure(sampleids, selected_samplesfull, selected_runs, selected_subru
                 s_name = fastqcnames_all[k]
                 f = fastqcfiles_all[k]
                 f_name = f.split('/')[-1]
-                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(STATIC_PATH,f_name), children=s_name + ': '+f_name)))
+                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(dsu.STATIC_PATH,f_name), children=s_name + ': '+f_name)))
             graphs.append(html.Ul(id='fastqc-files', children=list_elements))
 
         if 'barcodeqc' in selected_qcplots:
@@ -547,10 +561,10 @@ def update_figure(sampleids, selected_samplesfull, selected_runs, selected_subru
     return graphs
 """
 
-@app.server.route(os.path.join(STATIC_PATH,'<resource>'))
+@app.server.route(os.path.join(dsu.STATIC_PATH,'<resource>'))
 def serve_static(resource):
     print('RESOURCE: '+str(resource))
-    return flask.send_from_directory(STATIC_PATH, resource)
+    return flask.send_from_directory(dsu.STATIC_PATH, resource)
 
 if __name__ == '__main__':
     local_ip = socket.gethostbyname(socket.gethostname())

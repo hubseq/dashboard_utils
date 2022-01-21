@@ -14,23 +14,45 @@ import flask
 import dashboard_file_utils as dfu
 import dashboard_plot_utils as dpu
 import dashboard_server_utils as dsu
+sys.path.append('global_utils/src/')
+import file_utils
+
+def initDataframe( pipeline, sessionid ):
+    print('in initDataframe()')
+    dfs = {}
+    if pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
+        dfs = dsu.PIPELINE_DNASEQ_TARGETED_DF
+        for k in list(dfs.keys()):
+            if k in [dsu.DASHBOARD_ID_FASTQC, dsu.DASHBOARD_ID_BARCODEQC, dsu.DASHBOARD_ID_ALIGNMENT_PANEL]:
+                dfs[k][sessionid] = []
+            elif k in [dsu.DASHBOARD_ID_COVERAGE, dsu.DASHBOARD_ID_VARIANT]:
+                dfs[k][sessionid] = {}
+            elif k in [dsu.DASHBOARD_ID_RAW]:
+                dfs[k][sessionid] = {'fastq': [], 'bam': [], 'panelbam': [], 'unmappedbam': [], 'panelcounts': [], 'barcodecounts': []}
+    print('data frame: '+str(dfs))
+    return dfs
 
 
-def renderDashboard_main(userid, sessionid, pipelineid):
+def renderDashboard_main(teamid, userid, pipelineid):
     """ Renders the main dashboard.
     """
+    sessionid = str(uuid.uuid4())
+    dfs = initDataframe( pipelineid, sessionid ) # user needs to define structure of data frame
+    print('in renderDashboard_main(), teamid: {}, userid: {}, sessionid: {}'.format(str(teamid), str(userid), str(sessionid)))
     pipeline_list = dsu.list2optionslist([pipelineid])
     dashboard = 'Pipeline Data Analysis Dashboard'
     return html.Div([
         html.H3(dashboard),
-        html.Div(userid, id='USER_ID', style={'display': 'none'}, key=userid),
-        html.Div(sessionid, id='SESSION_ID', style={'display': 'none'}, key=sessionid),
+        html.Div(teamid, id='teamid', style={'display': 'none'}, key=teamid),
+        html.Div(userid, id='userid', style={'display': 'none'}, key=userid),
+        html.Div(sessionid, id='sessionid', style={'display': 'none'}, key=sessionid),
         dcc.Dropdown(id='choose-pipeline',
                      options=pipeline_list,
                      value=pipeline_list[0]['value'],
                      placeholder = "Choose pipeline"),
         dcc.Dropdown(id='choose-runs',
                      placeholder = "Choose Runs",
+                     searchable=True,
                      multi=True),
         dcc.Dropdown(id='choose-samples',
                      placeholder = "Choose Samples",
@@ -56,11 +78,16 @@ def defineCallbacks_mainDashboard(app):
     @app.callback(
         Output('choose-samples', 'options'),
         Input('choose-runs', 'value'),
-        State('pipeline-id', 'value'),
+        State('choose-pipeline', 'value'),
+        State('teamid', 'key'),
         State('userid', 'key'))
-    def CB_choose_samples(selected_runs, pipelineid, USER_ID):
+    def CB_choose_samples(selected_runs, pipelineid, teamid, userid):
+        print('in CB_choose_samples callback')
         if selected_runs != [] and selected_runs != None:
-            return dsu.list2optionslist(file_utils.getRunFileIds(USER_ID, pipelineid, selected_runs))
+            # print(file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs))
+            # [{'label': 'dnaseq_test', 'value': 'dnaseq_test'}]#
+            (sampleids, runids) = file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs)
+            return dsu.list2optionslist(sampleids, runids)
         else:
             return []
 
@@ -69,11 +96,14 @@ def defineCallbacks_mainDashboard(app):
         Output('choose-samples','value'),
         Input('choose-runs', 'value'),
         Input('choose-all-samples','value'),
-        State('pipeline-id', 'value'),
+        State('choose-pipeline', 'value'),
+        State('teamid', 'key'),
         State('userid', 'key'))
-    def CB_choose_all_samples( selected_runs, all_samples_checked, pipelineid, USER_ID ):
+    def CB_choose_all_samples( selected_runs, all_samples_checked, pipelineid, teamid, userid ):
+        print('in CB_choose_all_samples callback')
         if all_samples_checked != None and 'allsamples' in all_samples_checked:
-            return file_utils.getRunFileIds(USER_ID, pipelineid, selected_runs)
+            (sampleids, runids) = file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs)
+            return sampleids
         else:
             return []
 
@@ -81,9 +111,11 @@ def defineCallbacks_mainDashboard(app):
     @app.callback(
         Output('choose-runs', 'options'),
         Input('choose-pipeline', 'value'),
+        State('teamid', 'key'),
         State('userid', 'key'))
-    def CB_choose_pipeline(selected_pipeline, USER_ID):
+    def CB_choose_pipeline(selected_pipeline, teamid, userid):
+        print('in CB_choose_pipeline callback')
         if selected_pipeline != [] and selected_pipeline != None:
-            return dsu.list2optionslist(file_utils.getRunIds(USER_ID, selected_pipeline))
+            return dsu.list2optionslist(file_utils.getRunIds(dsu.ROOT_FOLDER, teamid, userid, selected_pipeline))
         else:
             return []

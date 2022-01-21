@@ -13,126 +13,177 @@ import pandas as pd
 import dashboard_file_utils as dfu
 import dashboard_plot_utils as dpu
 import dashboard_server_utils as dsu
-
-DASHBOARD_ID_FASTQC = 'fastqc-dashboard'
-DASHBOARD_ID_BARCODEQC = 'barcodeqc-dashboard'
-DASHBOARD_ID_ALIGNMENT_PANEL = 'alignment-panel-analysis-dashboard'
-DASHBOARD_ID_COVERAGE = 'coverage-analysis-dashboard'
-DASHBOARD_ID_VARIANT = 'variant-analysis-dashboard'
-DASHBOARD_ID_RAW = 'raw-files-dashboard'
-
-PIPELINE_DNASEQ_TARGETED_DF = {DASHBOARD_ID_FASTQC: {},
-                               DASHBOARD_ID_BARCODEQC: {},
-                               DASHBOARD_ID_ALIGNMENT_PANEL: {},
-                               DASHBOARD_ID_COVERAGE: {},
-                               DASHBOARD_ID_VARIANT: {},
-                               DASHBOARD_ID_RAW: {}}
-
-
-def initDataframe( pipeline, sessionid ):
-    dfs = PIPELINE_DNASEQ_TARGETED_DF
-    for k in list(dfs.keys()):
-        if k in [DASHBOARD_ID_FASTQC, DASHBOARD_ID_BARCODEQC, DASHBOARD_ID_ALIGNMENT_PANEL]:
-            dfs[k][sessionid] = []
-        elif k in [DASHBOARD_ID_COVERAGE, DASHBOARD_ID_VARIANT]:
-            dfs[k][sessionid] = {}
-        elif k in [DASHBOARD_ID_RAW]:
-            dfs[k][sessionid] = {'fastq': [], 'bam': [], 'panelbam': [], 'unmappedbam': [], 'panelcounts': [], 'barcodecounts': []}
-    return dfs
+sys.path.append('global_utils/src/')
+import file_utils
 
 
 ############################################################
 ## CALLBACK FUNCTIONS
 ############################################################
+def defineCallbacks_DNASeqTargetedDashboardList(app):
+    # Once pipeline is chosen, define the list of possible QC dashboards in graphdiv.
+    @app.callback(
+        Output('graphdiv', 'children'),
+        Input('choose-pipeline', 'value'),
+        State('teamid', 'key'),
+        State('userid', 'key'))
+    def CB_dnaseq_targeted_choose_analysisplots( selected_pipeline, teamid, userid ):
+        print('in defineCallbacks_DNASeqTargetedDashboardList callback')
+        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
+            dashboard_list = []
+            for dboard in list(dsu.PIPELINE_DNASEQ_TARGETED_DF.keys()):
+                dashboard_list.append(html.Div(id='{}-dbdiv'.format(dboard), style={'width': '100%'}, children=[]))
+            return dashboard_list
+        else:
+            dash.no_update
+
 def defineCallbacks_DNASeqTargetedAnalysisList(app):
-    # Once runs and samples are chosen, the list of possible analysis dashboards will displayed as dropdown.
+    # Once pipeline is chosen, the list of possible analysis dashboards will displayed as dropdown.
     @app.callback(
         Output('choose-analysis', 'options'),
-        Input('pipeline-id', 'value'),
+        Input('choose-pipeline', 'value'),
+        State('teamid', 'key'),
         State('userid', 'key'))
-    def CB_dnaseq_targeted_choose_analysisplots( selected_pipeline, USER_ID ):
-        if selected_pipeline != [] and selected_pipeline != None:
-            return dsu.list2optionslist(list(PIPELINE_DNASEQ_TARGETED_DF.keys()))
+    def CB_dnaseq_targeted_choose_analysisplots( selected_pipeline, teamid, userid ):
+        print('in CB_dnaseq_targeted_choose_analysisplots callback')
+        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
+            return dsu.list2optionslist(list(dsu.PIPELINE_DNASEQ_TARGETED_DF.keys()))
         else:
-            return []
+            dash.no_update
+
 
 def defineCallbacks_fastqcAnalysisDashboard(app):
     """ Callbacks for FASTQC analysis dashboard.
     """
     @app.callback(
-        Output('graphdiv', 'children'),
+        Output('{}-dbdiv'.format(dsu.DASHBOARD_ID_FASTQC), 'children'),
         Input('choose-samples', 'value'),
         Input('choose-runs', 'value'),
         Input('choose-analysis', 'value'),
-        State('session_id', 'key'),
+        State('sessionid', 'key'),
+        State('teamid', 'key'),
         State('userid', 'key'),
         State('choose-pipeline', 'value'))
-    def CB_fastqc_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, userid, pipelineid):
-        if selected_analysis == dsu.DASHBOARD_ID_FASTQC:
+    def CB_fastqc_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, teamid, userid, pipelineid):
+        print('in CB_fastqc_analysis_dashboard callback: SELECTED ANALYSIS: {}'.format(str(selected_analysis)))
+        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dsu.DASHBOARD_ID_FASTQC in selected_analysis:
+            print('getting FASTQC files')
             # get sample files and IDs
-            data_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['fastqc'], ['^HTML'], 'HTML')
+            (data_file_names, data_sample_ids) = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['fastqc'], ['^HTML'])
+            data_files = file_utils.downloadFiles( data_file_names, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_file_names[0]), False, True)
             # create dashboard plots
             graphs = []
             graphs.append(html.P(''))
             graphs.append(html.H2('Read FASTQC', id='fastqc-title'))
             graphs.append(html.P('Right-Click to open FASTQC HTML in new tab or window.', id='fastqc-desc'))
             list_elements = []
-            for k in range(0,len(data_file_names)):
+            for k in range(0,len(data_files)):
                 s_name = data_sample_ids[k]
-                f_name = data_file_names[k]
-                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(STATIC_PATH,f_name), children=s_name + ': '+f_name)))
+                f_name = data_files[k].split('/')[-1]
+                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(dsu.SCRATCH_DIR,f_name), children=s_name + ': '+f_name)))
             graphs.append(html.Ul(id='fastqc-files', children=list_elements))
             return graphs
         else:
-            dash.no_update
-
+            return []
 
 def defineCallbacks_alignmentPanelAnalysisDashboard(app):
     """ Callbacks for panel-based alignment analysis dashboard.
     """
     @app.callback(
-        Output('graphdiv', 'children'),
+        Output('{}-dbdiv'.format(dsu.DASHBOARD_ID_ALIGNMENT_PANEL), 'children'),
         Input('choose-samples', 'value'),
         Input('choose-runs', 'value'),
         Input('choose-analysis', 'value'),
-        State('session_id', 'key'),
+        State('sessionid', 'key'),
+        State('teamid', 'key'),
         State('userid', 'key'),
-        State('choose-pipeline', 'value'),
-        State('graphdiv', 'children'))
-    def CB_alignment_panel_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, userid, pipelineid):
-        if selected_analysis == dsu.DASHBOARD_ID_ALIGNMENT_PANEL:
+        State('choose-pipeline', 'value'))
+    def CB_alignment_panel_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, teamid, userid, pipelineid):
+        print('in CB_alignment_panel_analysis_dashboard callback')
+        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dsu.DASHBOARD_ID_ALIGNMENT_PANEL in selected_analysis:
             # get sample files and IDs
-            flagstat_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^flagstat.json'], 'JSON')
-            hsmetrics_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^hsmetrics.json'], 'JSON')
+            (alignstats_file_names, data_sample_ids) = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['bwamem_bam'], ['^alignment_stats.csv'] )
+            data_files = file_utils.downloadFiles( alignstats_file_names, dsu.SCRATCH_DIR, file_utils.inferFileSystem(alignstats_file_names[0] if len(alignstats_file_names) > 0 else 'local'), False, True)
+            # hsmetrics_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^hsmetrics.json'], 'JSON')
             # create plot figures
-            flagstat_figures_list = plotFlagstat( flagstat_file_names, data_sample_ids )
-            hsmetrics_figures_list = plotHsMetrics( hsmetrics_file_names, data_sample_ids )
+            alignstats_figure_list = plotAlignStats( data_files, data_sample_ids )
+            # hsmetrics_figures_list = plotHsMetrics( hsmetrics_file_names, data_sample_ids )
             # create dashboard plots
             graphs = []
             graphs.append(html.H2('Targeted Alignment Analysis', id='alignqc-title'))
             ## display figures
-            for i in range(0,len(flagstat_figures_list)):
-                graphs.append(dcc.Graph(id='graphs_flagstat_'+str(i+1), figure=flagstat_figures_list[i]))
+            for i in range(0,len(alignstats_figure_list)):
+                graphs.append(dcc.Graph(id='graphs_alignstats_'+str(i+1), figure=alignstats_figure_list[i]))
                 graphs.append(html.Hr())
-            for i in range(0,len(hsmetrics_figures_list)):
-                graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figures_list[i]))
-                graphs.append(html.Hr())
+            # for i in range(0,len(hsmetrics_figure_list)):
+            #    graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figure_list[i]))
+            #    graphs.append(html.Hr())
             # return final graph elements (list) - rendered by Dash
             return graphs
         else:
-            dash.no_update
+            return []
 
 
 ############################################################
 ## PLOT FUNCTIONS
 ############################################################
-def plotFlagstat( flagstat_file_names, data_sample_ids ):
-    """ plots percent mapped and other alignment plots derived from samtools flagstat output
+def plotAlignStats( alignstats_file_names, data_sample_ids ):
+    """ plots percent mapped and other alignment plots derived from samtools view output from bwamem_bam module
 
-    flagstat_file_names: LIST of JSON files
+    alignstats_file_names: LIST of alignment stats files
     data_sample_ids: LIST of sample IDs for these files (ordered)
     return: LIST of figures
     """
+    print('in plotAlignStats()')
+    plots = []
+    alignstats_dfs = []
+    total, percent_mapped, mapped = [], [], []
+    files_howmanyempty = 0
+
+    # read and convert JSONs to pandas dataframes
+    for i in range(len(alignstats_file_names)):
+        alignstats_dfs.append(pd.read_csv(alignstats_file_names[i]) if alignstats_file_names[i] not in ['', []] else pd.DataFrame())
+
+    # get flagstat alignment info for each sample
+    for i in range(len(alignstats_dfs)):
+        _df = alignstats_dfs[i]
+        # we skip samples that don't have alignment stats output
+        if (type(_df) == type(pd.DataFrame()) and _df.empty):
+            files_howmanyempty += 1
+            percent_mapped.append(0)
+            mapped.append(0)
+            total.append(0)
+        else:
+            _total = int(list(_df[_df.read_type.isin(['total'])]['count'])[0])
+            _mapped = int(list(_df[_df.read_type.isin(['mapped'])]['count'])[0])
+            _percent_mapped = (100.0*_mapped)/_total
+
+            total.append(_total)
+            mapped.append(_mapped)
+            percent_mapped.append(_percent_mapped)
+
+    _df = pd.DataFrame( list(zip(data_sample_ids, total, mapped, percent_mapped)), \
+                       columns=['sample','total','mapped','percent_mapped'] ) \
+                       if alignstats_dfs!= None and len(alignstats_dfs) > 0 and files_howmanyempty < len(alignstats_file_names) \
+                       else pd.DataFrame({"sample": [], "total": [], "mapped": [], "percent_mapped": []})
+
+    # total plot
+    p1 = dpu.plotBar( list(_df["sample"]), list(_df["total"]), "sample", "total", "Total Reads Mapped to hg38" )
+    plots.append( p1.getFigureObject())
+
+    # % mapped plot
+    p2 = dpu.plotBar( list(_df["sample"]), list(_df["percent_mapped"]), "sample", "percent_mapped", "% Reads Mapped to hg38" )
+    plots.append( p2.getFigureObject())
+
+    return plots
+
+"""
+def plotFlagstat( flagstat_file_names, data_sample_ids ):
+    # plots percent mapped and other alignment plots derived from samtools flagstat output
+
+    # flagstat_file_names: LIST of JSON files
+    # data_sample_ids: LIST of sample IDs for these files (ordered)
+    # return: LIST of figures
     plots = []
     samtools_flagstat_dfs = []
     percent_mapped, mapped, properly_paired = [], [], []
@@ -140,13 +191,16 @@ def plotFlagstat( flagstat_file_names, data_sample_ids ):
 
     # read and convert JSONs to pandas dataframes
     for i in range(len(flagstat_file_names)):
-        samtools_flagstat_dfs.append(pd.read_json( flagstat_file_names[i], orient='index' ))
+        samtools_flagstat_dfs.append(pd.read_json( flagstat_file_names[i], orient='index' ) if flagstat_file_names[i] not in ['', []] else pd.DataFrame())
 
     # get flagstat alignment info for each sample
     for i in range(len(samtools_flagstat_dfs)):
         # we skip samples that don't have samtools flagstat output
         if type(samtools_flagstat_dfs[i]) == list and samtools_flagstat_dfs[i] == []:
             flagstat_howmanyempty += 1
+            percent_mapped.append(0)
+            properly_paired.append(0)
+            mapped.append(0)
         else:
             _total_reads = samtools_flagstat_dfs[i]['qcpass']['total']
             percent_mapped.append(100.0*samtools_flagstat_dfs[i]['qcpass']['mapped']/_total_reads if _total_reads > 0 else 0)
@@ -166,13 +220,13 @@ def plotFlagstat( flagstat_file_names, data_sample_ids ):
 
 
 def plotHsMetrics( hsmetrics_file_names, data_sample_ids ):
-    """ plots % on-target, % off-target and FOLD-80 from picard tools HS metrics.
-    Note that on-target includes "near-target" from HS metrics.
+    # plots % on-target, % off-target and FOLD-80 from picard tools HS metrics.
+    # Note that on-target includes "near-target" from HS metrics.
 
-    hsmetrics_file_names: LIST of JSON files
-    data_sample_ids: LIST of sample IDs for these files (ordered)
-    return: LIST of figures
-    """
+    # hsmetrics_file_names: LIST of JSON files
+    # data_sample_ids: LIST of sample IDs for these files (ordered)
+    # return: LIST of figures
+    #
     plots = []
     picard_hsmetrics_dfs = []
     on_targets, off_targets, fold_80 = [], [], []
@@ -215,3 +269,4 @@ def plotHsMetrics( hsmetrics_file_names, data_sample_ids ):
     plots.append(p3.getFigureObject())
 
     return plots
+"""

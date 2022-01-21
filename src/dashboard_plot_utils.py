@@ -188,14 +188,14 @@ def plotScatter( x, y, xlabel = 'x', ylabel = 'y', title = '', options = {}):
     """ Creates a scatter plot from raw graph properties.
     """
     p = createPlotObject('scatter', x, y, xlabel, ylabel, title)
-    return plotScatterObject( p )
+    return plotScatterObject( p, options )
 
-def plotScatterObject( p ):
+def plotScatterObject( p, options ):
     """ Creates a scatter plot from a Plot object.
     """
     p.addOptions(options)
     p.setFigureObject(px.scatter(x=p.getX(), y=p.getY(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT))
-    p.updateFigureLayout()
+    p.updateFigureLayout_default()
     return p
 
 
@@ -203,15 +203,15 @@ def plotBar( x, y, xlabel = 'x', ylabel = 'y', title = '', options = {}):
     """ Creates a bar plot from raw graph properties.
     """
     p = createPlotObject('bar', x, y, xlabel, ylabel, title)
-    return plotBarObject( p )
+    return plotBarObject( p, options )
 
-def plotBarObject( p ):
+def plotBarObject( p, options ):
     """ Creates a bar plot from a Plot object.
     """
     p.addOptions(options)
     p.createDataFrame()
     p.setFigureObject(px.bar(p.getDataFrame(), x=p.getXLabel(), y=p.getYLabel(), title=p.getTitle(), height=PLOT_HEIGHT_DEFAULT))
-    p.updateFigureLayout()
+    p.updateFigureLayout_default()
     return p
 
 
@@ -219,9 +219,9 @@ def plotHistogram( x, xlabel = 'x', ylabel = 'y', title = '', options = {}):
     """ Creates a histogram plot from raw graph properties.
     """
     p = createPlotObject('hist', x, [], xlabel, ylabel, title)
-    return plotHistogramObject( p )
+    return plotHistogramObject( p, options )
 
-def plotHistogramObject( p ):
+def plotHistogramObject( p, options ):
     """ Creates a histogram plot from a Plot object.
     """
     p.addOptions(options)
@@ -237,15 +237,15 @@ def plotViolin( x, y, xlabel = 'x', ylabel = 'y', title = '', options = {}):
     """ Creates a violin plot from raw graph properties.
     """
     p = createPlotObject('violin', x, y, xlabel, ylabel, title)
-    return plotViolinObject( p )
+    return plotViolinObject( p, options )
 
-def plotViolinObject( p ):
+def plotViolinObject( p, options ):
     """ Creates a violin plot from a Plot object.
     """
     p.addOptions(options)
     p.createDataFrame()
     p.setFigureObject(px.violin(x=p.getX(), y=p.getY(), title=p.getTitle(), box=True, height=PLOT_HEIGHT_DEFAULT))
-    p.updateFigureLayout()
+    p.updateFigureLayout_default()
     return p
 
 
