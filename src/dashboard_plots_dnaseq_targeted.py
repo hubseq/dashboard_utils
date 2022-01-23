@@ -13,9 +13,18 @@ import pandas as pd
 import dashboard_file_utils as dfu
 import dashboard_plot_utils as dpu
 import dashboard_server_utils as dsu
+import dashboard_constants_dnaseq_targeted as dc
 sys.path.append('global_utils/src/')
 import file_utils
+import global_keys
 
+# main Pandas dataframe that contains all data to display on dashboard
+session_dfs = {}
+
+def initSessionDataFrame( _session_dfs ):
+    global session_dfs
+    session_dfs = _session_dfs
+    return
 
 ############################################################
 ## CALLBACK FUNCTIONS
@@ -29,9 +38,9 @@ def defineCallbacks_DNASeqTargetedDashboardList(app):
         State('userid', 'key'))
     def CB_dnaseq_targeted_choose_analysisplots( selected_pipeline, teamid, userid ):
         print('in defineCallbacks_DNASeqTargetedDashboardList callback')
-        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
+        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dc.PIPELINE_ID:
             dashboard_list = []
-            for dboard in list(dsu.PIPELINE_DNASEQ_TARGETED_DF.keys()):
+            for dboard in list(dc.DASHBOARD_CONFIG_JSON["dashboard_ids"].values()):
                 dashboard_list.append(html.Div(id='{}-dbdiv'.format(dboard), style={'width': '100%'}, children=[]))
             return dashboard_list
         else:
@@ -46,8 +55,8 @@ def defineCallbacks_DNASeqTargetedAnalysisList(app):
         State('userid', 'key'))
     def CB_dnaseq_targeted_choose_analysisplots( selected_pipeline, teamid, userid ):
         print('in CB_dnaseq_targeted_choose_analysisplots callback')
-        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
-            return dsu.list2optionslist(list(dsu.PIPELINE_DNASEQ_TARGETED_DF.keys()))
+        if selected_pipeline != [] and selected_pipeline != None and selected_pipeline == dc.PIPELINE_ID:
+            return dsu.list2optionslist(list(dc.DASHBOARD_CONFIG_JSON["dashboard_ids"].values()))
         else:
             dash.no_update
 
@@ -56,7 +65,7 @@ def defineCallbacks_fastqcAnalysisDashboard(app):
     """ Callbacks for FASTQC analysis dashboard.
     """
     @app.callback(
-        Output('{}-dbdiv'.format(dsu.DASHBOARD_ID_FASTQC), 'children'),
+        Output('{}-dbdiv'.format(dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"]), 'children'),
         Input('choose-samples', 'value'),
         Input('choose-runs', 'value'),
         Input('choose-analysis', 'value'),
@@ -65,32 +74,44 @@ def defineCallbacks_fastqcAnalysisDashboard(app):
         State('userid', 'key'),
         State('choose-pipeline', 'value'))
     def CB_fastqc_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, teamid, userid, pipelineid):
+        global session_dfs
         print('in CB_fastqc_analysis_dashboard callback: SELECTED ANALYSIS: {}'.format(str(selected_analysis)))
-        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dsu.DASHBOARD_ID_FASTQC in selected_analysis:
+        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"] in selected_analysis:
             print('getting FASTQC files')
             # get sample files and IDs
-            (data_file_names, data_sample_ids) = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['fastqc'], ['^HTML'])
-            data_files = file_utils.downloadFiles( data_file_names, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_file_names[0]), False, True)
-            # create dashboard plots
-            graphs = []
-            graphs.append(html.P(''))
-            graphs.append(html.H2('Read FASTQC', id='fastqc-title'))
-            graphs.append(html.P('Right-Click to open FASTQC HTML in new tab or window.', id='fastqc-desc'))
-            list_elements = []
-            for k in range(0,len(data_files)):
-                s_name = data_sample_ids[k]
-                f_name = data_files[k].split('/')[-1]
-                list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(dsu.SCRATCH_DIR,f_name), children=s_name + ': '+f_name)))
-            graphs.append(html.Ul(id='fastqc-files', children=list_elements))
-            return graphs
+            data_file_json_list = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['fastqc'], ['^HTML'])
+            data_files_remote = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_NAME, '')
+            # ONLY update IF we have grabbed new data files
+            if data_files_remote != dfu.getSessionDataFiles( session_dfs, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"] ):
+                data_files = file_utils.downloadFiles( data_files_remote, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_files_remote), False, True)
+                data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
+                # create dashboard plots
+                graphs = []
+                graphs.append(html.P(''))
+                graphs.append(html.H2('Read FASTQC', id='fastqc-title'))
+                graphs.append(html.P('Right-Click to open FASTQC HTML in new tab or window.', id='fastqc-desc'))
+                list_elements = []
+                for k in range(0,len(data_files)):
+                    s_name = data_sample_ids[k]
+                    f_name = data_files[k].split('/')[-1]
+                    list_elements.append(html.Li(id=f_name+'_listitem', children=html.A(id=f_name,href=os.path.join(dsu.SCRATCH_DIR,f_name), children=s_name + ': '+f_name)))
+                graphs.append(html.Ul(id='fastqc-files', children=list_elements))
+                # save loaded data file paths in this session
+                session_dfs = dfu.saveSessionDataFiles( session_dfs, data_files_remote, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"])
+                return graphs
+            else:
+                raise dash.exceptions.PreventUpdate
+                # dash.no_update
         else:
+            # clear data files in session if we don't view this analysis
+            session_dfs = dfu.saveSessionDataFiles( session_dfs, [], pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"])
             return []
 
 def defineCallbacks_alignmentPanelAnalysisDashboard(app):
     """ Callbacks for panel-based alignment analysis dashboard.
     """
     @app.callback(
-        Output('{}-dbdiv'.format(dsu.DASHBOARD_ID_ALIGNMENT_PANEL), 'children'),
+        Output('{}-dbdiv'.format(dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"]), 'children'),
         Input('choose-samples', 'value'),
         Input('choose-runs', 'value'),
         Input('choose-analysis', 'value'),
@@ -99,28 +120,43 @@ def defineCallbacks_alignmentPanelAnalysisDashboard(app):
         State('userid', 'key'),
         State('choose-pipeline', 'value'))
     def CB_alignment_panel_analysis_dashboard(selected_samples, selected_runs, selected_analysis, sessionid, teamid, userid, pipelineid):
+        global session_dfs
         print('in CB_alignment_panel_analysis_dashboard callback')
-        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dsu.DASHBOARD_ID_ALIGNMENT_PANEL in selected_analysis:
-            # get sample files and IDs
-            (alignstats_file_names, data_sample_ids) = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['bwamem_bam'], ['^alignment_stats.csv'] )
-            data_files = file_utils.downloadFiles( alignstats_file_names, dsu.SCRATCH_DIR, file_utils.inferFileSystem(alignstats_file_names[0] if len(alignstats_file_names) > 0 else 'local'), False, True)
-            # hsmetrics_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^hsmetrics.json'], 'JSON')
-            # create plot figures
-            alignstats_figure_list = plotAlignStats( data_files, data_sample_ids )
-            # hsmetrics_figures_list = plotHsMetrics( hsmetrics_file_names, data_sample_ids )
-            # create dashboard plots
-            graphs = []
-            graphs.append(html.H2('Targeted Alignment Analysis', id='alignqc-title'))
-            ## display figures
-            for i in range(0,len(alignstats_figure_list)):
-                graphs.append(dcc.Graph(id='graphs_alignstats_'+str(i+1), figure=alignstats_figure_list[i]))
-                graphs.append(html.Hr())
-            # for i in range(0,len(hsmetrics_figure_list)):
-            #    graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figure_list[i]))
-            #    graphs.append(html.Hr())
-            # return final graph elements (list) - rendered by Dash
-            return graphs
+        if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"] in selected_analysis:
+            # get sample data files
+            data_file_json_list = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['bwamem_bam'], ['^alignment_stats.csv'] )
+            print('SESSION DF CURRENT: '+str(session_dfs))
+            print('DATAFILE JSON LIST: '+str(data_file_json_list))
+            data_files_remote = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_NAME, '')
+            # ONLY update IF we have grabbed new data files
+            if data_files_remote != dfu.getSessionDataFiles( session_dfs, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"] ):
+                data_files = file_utils.downloadFiles( data_files_remote, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_files_remote), False, True)
+                data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
+                # hsmetrics_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^hsmetrics.json'], 'JSON')
+                # create plot figures
+                alignstats_figure_list = plotAlignStats( data_files, data_sample_ids )
+                # hsmetrics_figures_list = plotHsMetrics( hsmetrics_file_names, data_sample_ids )
+                # create dashboard plots
+                graphs = []
+                graphs.append(html.H2('Targeted Alignment Analysis', id='alignqc-title'))
+                ## display figures
+                for i in range(0,len(alignstats_figure_list)):
+                    graphs.append(dcc.Graph(id='graphs_alignstats_'+str(i+1), figure=alignstats_figure_list[i]))
+                    graphs.append(html.Hr())
+                # for i in range(0,len(hsmetrics_figure_list)):
+                #    graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figure_list[i]))
+                #    graphs.append(html.Hr())
+                # return final graph elements (list) - rendered by Dash
+
+                # save loaded data file paths in this session
+                session_dfs = dfu.saveSessionDataFiles( session_dfs, data_files_remote, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"])
+                return graphs
+            else:
+                raise dash.exceptions.PreventUpdate
+                # dash.no_update
         else:
+            # clear data files in session if we don't view this analysis
+            session_dfs = dfu.saveSessionDataFiles( session_dfs, [], pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"])
             return []
 
 

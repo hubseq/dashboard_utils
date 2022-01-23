@@ -17,30 +17,33 @@ import dashboard_server_utils as dsu
 sys.path.append('global_utils/src/')
 import file_utils
 
-def initDataframe( pipeline, sessionid ):
+def initDataframe( sessionid, pipeline_config_json ):
+    """ initialize global data frame for holding sample info for this session of pipeline analysis dashboard.
+    Format is:
+    dfs = {"<pipeline_id>":
+            {"<session_id>":
+              {"<analysis_dashboard1>":
+                ["<data_file_json1>", "<data_file_json2>",...]
+              },
+              {"<analysis_dashboard2>":
+                ["<data_file_json1>", "<data_file_json2>",...]
+              },
+            }
+          }
+    """
     print('in initDataframe()')
-    dfs = {}
-    if pipeline == dsu.DNASEQ_TARGETED_PIPELINE_ID:
-        dfs = dsu.PIPELINE_DNASEQ_TARGETED_DF
-        for k in list(dfs.keys()):
-            if k in [dsu.DASHBOARD_ID_FASTQC, dsu.DASHBOARD_ID_BARCODEQC, dsu.DASHBOARD_ID_ALIGNMENT_PANEL]:
-                dfs[k][sessionid] = []
-            elif k in [dsu.DASHBOARD_ID_COVERAGE, dsu.DASHBOARD_ID_VARIANT]:
-                dfs[k][sessionid] = {}
-            elif k in [dsu.DASHBOARD_ID_RAW]:
-                dfs[k][sessionid] = {'fastq': [], 'bam': [], 'panelbam': [], 'unmappedbam': [], 'panelcounts': [], 'barcodecounts': []}
+    dashboard_names = list(pipeline_config_json["dashboard_ids"].values())
+    dfs = {pipeline_config_json["pipeline_id"]: {sessionid: dict(zip(dashboard_names, len(dashboard_names)*[{}]))}}
     print('data frame: '+str(dfs))
     return dfs
 
 
-def renderDashboard_main(teamid, userid, pipelineid):
+def renderDashboard_main(teamid, userid, pipelineid, sessionid):
     """ Renders the main dashboard.
     """
-    sessionid = str(uuid.uuid4())
-    dfs = initDataframe( pipelineid, sessionid ) # user needs to define structure of data frame
     print('in renderDashboard_main(), teamid: {}, userid: {}, sessionid: {}'.format(str(teamid), str(userid), str(sessionid)))
     pipeline_list = dsu.list2optionslist([pipelineid])
-    dashboard = 'Pipeline Data Analysis Dashboard'
+    dashboard = dsu.DASHBOARD_NAME_MAIN
     return html.Div([
         html.H3(dashboard),
         html.Div(teamid, id='teamid', style={'display': 'none'}, key=teamid),
