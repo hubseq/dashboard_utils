@@ -90,6 +90,7 @@ def defineCallbacks_mainDashboard(app):
             # print(file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs))
             # [{'label': 'dnaseq_test', 'value': 'dnaseq_test'}]#
             (sampleids, runids) = file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs)
+            print('SAMPLEIDS RUNIDS: {} / {}'.format(str(sampleids), str(runids)))
             return dsu.list2optionslist(sampleids, runids)
         else:
             return []

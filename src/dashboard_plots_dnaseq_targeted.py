@@ -147,7 +147,7 @@ def defineCallbacks_alignmentPanelAnalysisDashboard(app):
                 #    graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figure_list[i]))
                 #    graphs.append(html.Hr())
                 # return final graph elements (list) - rendered by Dash
-
+                
                 # save loaded data file paths in this session
                 session_dfs = dfu.saveSessionDataFiles( session_dfs, data_files_remote, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"])
                 return graphs
