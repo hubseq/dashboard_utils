@@ -171,6 +171,7 @@ def plotAlignStats( alignstats_file_names, data_sample_ids ):
     return: LIST of figures
     """
     print('in plotAlignStats()')
+    print('alignfiles: {}, samples: {}'.format(str(alignstats_file_names), str(data_sample_ids)))
     plots = []
     alignstats_dfs = []
     total, percent_mapped, mapped = [], [], []
