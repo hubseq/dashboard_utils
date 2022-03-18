@@ -3,7 +3,7 @@
 #
 # Render and callback functions for main dashboard
 #
-import sys, os, csv, uuid
+import sys, os, csv
 import dash
 from dash import dash_table
 from dash import dcc
@@ -23,17 +23,25 @@ def initDataframe( sessionid, pipeline_config_json ):
     dfs = {"<pipeline_id>":
             {"<session_id>":
               {"<analysis_dashboard1>":
-                ["<data_file_json1>", "<data_file_json2>",...]
+                {"remote_data_files":
+                  ["<data_file_json1>", "<data_file_json2>",...],
+                 "local_data_files":
+                  ["<data_file_1>", "<data_file_2>",...]
+                }
               },
               {"<analysis_dashboard2>":
-                ["<data_file_json1>", "<data_file_json2>",...]
+                {"remote_data_files":
+                  ["<data_file_json1>", "<data_file_json2>",...],
+                 "local_data_files":
+                  ["<data_file_1>", "<data_file_2>",...]
+                }
               },
             }
           }
     """
     print('in initDataframe()')
     dashboard_names = list(pipeline_config_json["dashboard_ids"].values())
-    dfs = {pipeline_config_json["pipeline_id"]: {sessionid: dict(zip(dashboard_names, len(dashboard_names)*[{}]))}}
+    dfs = {pipeline_config_json["pipeline_id"]: {sessionid: dict(zip(dashboard_names, len(dashboard_names)*[{"remote_data_files": [], "local_data_files": []}]))}}
     print('data frame: '+str(dfs))
     return dfs
 
@@ -87,10 +95,7 @@ def defineCallbacks_mainDashboard(app):
     def CB_choose_samples(selected_runs, pipelineid, teamid, userid):
         print('in CB_choose_samples callback')
         if selected_runs != [] and selected_runs != None:
-            # print(file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs))
-            # [{'label': 'dnaseq_test', 'value': 'dnaseq_test'}]#
             (sampleids, runids) = file_utils.getRunFileIds(dsu.ROOT_FOLDER, teamid, userid, pipelineid, selected_runs)
-            print('SAMPLEIDS RUNIDS: {} / {}'.format(str(sampleids), str(runids)))
             return dsu.list2optionslist(sampleids, runids)
         else:
             return []

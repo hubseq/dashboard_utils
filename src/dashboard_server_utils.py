@@ -4,7 +4,7 @@
 # General server utility functions for Plotly Dash web server instance.
 # Constant variables for dashboards should be stored here.
 #
-import os
+import os, uuid
 import pandas as pd
 
 ############################################################
@@ -17,21 +17,6 @@ ROOT_FOLDER = 's3://'
 
 DASHBOARD_NAME_MAIN = 'Pipeline Data Analysis Dashboard'
 
-"""
-DNASEQ_TARGETED_PIPELINE_ID = 'dnaseq_targeted'
-DASHBOARD_ID_FASTQC = 'fastqc-dashboard'
-DASHBOARD_ID_BARCODEQC = 'barcodeqc-dashboard'
-DASHBOARD_ID_ALIGNMENT_PANEL = 'alignment-panel-analysis-dashboard'
-DASHBOARD_ID_COVERAGE = 'coverage-analysis-dashboard'
-DASHBOARD_ID_VARIANT = 'variant-analysis-dashboard'
-DASHBOARD_ID_RAW = 'raw-files-dashboard'
-PIPELINE_DNASEQ_TARGETED_DF = {DASHBOARD_ID_FASTQC: {},
-                               DASHBOARD_ID_BARCODEQC: {},
-                               DASHBOARD_ID_ALIGNMENT_PANEL: {},
-                               DASHBOARD_ID_COVERAGE: {},
-                               DASHBOARD_ID_VARIANT: {},
-                               DASHBOARD_ID_RAW: {}}
-"""
 
 def getSessionId( teamid, userid, pipelineid, IdFromTeamAndUser = True ):
     """ Gets a unique session ID for this dashboard instance.

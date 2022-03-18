@@ -46,6 +46,7 @@ def defineCallbacks_DNASeqTargetedDashboardList(app):
         else:
             dash.no_update
 
+
 def defineCallbacks_DNASeqTargetedAnalysisList(app):
     # Once pipeline is chosen, the list of possible analysis dashboards will displayed as dropdown.
     @app.callback(
@@ -77,14 +78,14 @@ def defineCallbacks_fastqcAnalysisDashboard(app):
         global session_dfs
         print('in CB_fastqc_analysis_dashboard callback: SELECTED ANALYSIS: {}'.format(str(selected_analysis)))
         if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"] in selected_analysis:
-            print('getting FASTQC files')
-            # get sample files and IDs
+            # get remote sample file paths and IDs for currently chosen samples
             data_file_json_list = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['fastqc'], ['^HTML'])
             data_files_remote = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_NAME, '')
-            # ONLY update IF we have grabbed new data files
+            data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
+            # ONLY update IF we have grabbed new sample data files
             if data_files_remote != dfu.getSessionDataFiles( session_dfs, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"] ):
+                # downloads the actual data files from remote
                 data_files = file_utils.downloadFiles( data_files_remote, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_files_remote), False, True)
-                data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
                 # create dashboard plots
                 graphs = []
                 graphs.append(html.P(''))
@@ -107,6 +108,7 @@ def defineCallbacks_fastqcAnalysisDashboard(app):
             session_dfs = dfu.saveSessionDataFiles( session_dfs, [], pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["fastqc"])
             return []
 
+
 def defineCallbacks_alignmentPanelAnalysisDashboard(app):
     """ Callbacks for panel-based alignment analysis dashboard.
     """
@@ -123,15 +125,13 @@ def defineCallbacks_alignmentPanelAnalysisDashboard(app):
         global session_dfs
         print('in CB_alignment_panel_analysis_dashboard callback')
         if not dsu.selectionEmpty(selected_analysis) and not dsu.selectionEmpty(selected_samples) and dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"] in selected_analysis:
-            # get sample data files
+            # get sample data file paths and IDs
             data_file_json_list = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['bwamem_bam'], ['^alignment_stats.csv'] )
-            print('SESSION DF CURRENT: '+str(session_dfs))
-            print('DATAFILE JSON LIST: '+str(data_file_json_list))
             data_files_remote = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_NAME, '')
+            data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
             # ONLY update IF we have grabbed new data files
             if data_files_remote != dfu.getSessionDataFiles( session_dfs, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"] ):
                 data_files = file_utils.downloadFiles( data_files_remote, dsu.SCRATCH_DIR, file_utils.inferFileSystem(data_files_remote), False, True)
-                data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
                 # hsmetrics_file_names, data_sample_ids = dfu.getSamples(userid, pipelineid, selected_runs, selected_sample, ['alignmentqc'], ['^hsmetrics.json'], 'JSON')
                 # create plot figures
                 alignstats_figure_list = plotAlignStats( data_files, data_sample_ids )
@@ -147,7 +147,7 @@ def defineCallbacks_alignmentPanelAnalysisDashboard(app):
                 #    graphs.append(dcc.Graph(id='graphs_hsmetrics_'+str(i+1), figure=hsmetrics_figure_list[i]))
                 #    graphs.append(html.Hr())
                 # return final graph elements (list) - rendered by Dash
-                
+
                 # save loaded data file paths in this session
                 session_dfs = dfu.saveSessionDataFiles( session_dfs, data_files_remote, pipelineid, sessionid, dc.DASHBOARD_CONFIG_JSON["dashboard_ids"]["alignment"])
                 return graphs
@@ -166,8 +166,8 @@ def defineCallbacks_alignmentPanelAnalysisDashboard(app):
 def plotAlignStats( alignstats_file_names, data_sample_ids ):
     """ plots percent mapped and other alignment plots derived from samtools view output from bwamem_bam module
 
-    alignstats_file_names: LIST of alignment stats files
-    data_sample_ids: LIST of sample IDs for these files (ordered)
+    alignstats_file_names: LIST of alignment stats files (CSV format)
+    data_sample_ids: LIST of sample IDs for these files (in same order as alignstats files list)
     return: LIST of figures
     """
     print('in plotAlignStats()')

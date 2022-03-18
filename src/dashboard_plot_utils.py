@@ -7,11 +7,26 @@ import os, sys, subprocess, json, random
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import uuid
+import dash
+from dash import dash_table
+from dash import dcc
+from dash import html
 
 ############################################################
 ## CONSTANTS USED BY PLOTS
 ############################################################
 PLOT_HEIGHT_DEFAULT = 800
+
+############################################################
+## PLOT UTILITY FUNCTIONS
+############################################################
+def addGraph( fig_object, fig_id = 'fig-'+str(uuid.uuid4())[0:6], options = {} ):
+    if 'style' in options:
+        return dcc.Graph(id=fig_id, figure=fig_object, style=options['style'])
+    else:
+        return dcc.Graph(id=fig_id, figure=fig_object)
+
 
 ############################################################
 ## Plot class for creating Plot objects.
@@ -33,7 +48,7 @@ class Plot:
         self.xscale = 'linear'
         self.yscale = 'linear'
         self.xrange = (min(x), max(x))
-        self.yrange = (min(y), max(y))
+        self.yrange = (min(y), max(y)) if y != [] else (0, 0)
         self.plot_df = pd.DataFrame()
         self.options = {}
         self.figure_object = None
@@ -215,6 +230,11 @@ def plotBarObject( p, options ):
     return p
 
 
+def plotHist( x, xlabel = 'x', ylabel = 'y', title = '', options = {}):
+    """ Alias for plotHistogram()
+    """
+    return plotHistogram( x, xlabel, ylabel, title, options)
+
 def plotHistogram( x, xlabel = 'x', ylabel = 'y', title = '', options = {}):
     """ Creates a histogram plot from raw graph properties.
     """
@@ -228,7 +248,7 @@ def plotHistogramObject( p, options ):
     # if p.getYScale() == 'log'
     # px.histogram(p.getX(), nbins=100, title=p.getTitle(), log_y=True)
     p_plot = go.Figure(go.Histogram(x=p.getX()))
-    p_plot.update_layout( title_text=p.getTitle(), xaxis_title_text=p.getXLabel(), yaxis_title_text=p.getYLabel())
+    p_plot.update_layout( title_text=p.getTitle(), title_x=0.5, xaxis_title_text=p.getXLabel(), yaxis_title_text=p.getYLabel())
     p.setFigureObject(p_plot)
     return p
 
