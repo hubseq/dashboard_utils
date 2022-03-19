@@ -243,14 +243,14 @@ def defineCallbacks_peakAnalysisDashboard(app):
                 graphs.append(html.H2('ChIP-Seq Peak Analysis', id='peaks-title'))
                 ## display figures and tables
                 graphs.append(html.Div(id='plotpeakdistr-div', style={'width': '100%', 'display': 'inline-block'}, \
-                              children=[dpu.addGraph(plotPeakLengthHistograms(peaks_df_list[i], peaks_df_type[i]), options={'style': {'width': '45%', 'display': 'inline-block'}}) for i in range(0,len(peaks_df_list))]))
+                              children=[dpu.addGraph(plotPeakLengthHistograms(data_sample_ids[i], peaks_df_list[i], peaks_df_type[i]), options={'style': {'width': '45%', 'display': 'inline-block'}}) for i in range(0,len(peaks_df_list))]))
 
                 # then tables of peak data with download button
                 for i in range(0,len(peaks_df_list)):
                     if peaks_df_type[i] == 'MACS2':
-                        graphs.append(html.H4('MACS2 peaks'))
+                        graphs.append(html.H4('MACS2 peaks for {}'.format(str(data_sample_ids[i]))))
                     elif peaks_df_type[i] == 'homer':
-                        graphs.append(html.H4('HOMER peaks'))
+                        graphs.append(html.H4('HOMER peaks for {}'.format(str(data_sample_ids[i]))))
                     graphs.append(dash_table.DataTable(id='tables_peaks_'+str(i+1), columns=[{"name": j, "id": j} for j in peaks_df_list[i]], data=peaks_df_list[i].to_dict(orient='records')))
                     graphs.append(html.Div(children=[html.Button('Download Peak Table', id='download_peak_table_button_{}'.format(str(i+1))), \
                                                      dcc.Download(id='download_peak_table_{}'.format(str(i+1)))]))
@@ -358,12 +358,13 @@ def getPeaksTables( peaks_file_names, data_sample_ids ):
             peaks_type_list.append('MACS2')
     return peaks_dfs_list, peaks_type_list
 
-def plotPeakLengthHistograms( peaks_df, peak_type = 'MACS2'):
+def plotPeakLengthHistograms( sample_id, peaks_df, peak_type = 'MACS2'):
     """ Given a peak data frame, plots histogram of peak lengths
     """
+    print('SAMPLE ID: '+str(sample_id))    
     print('PEAKS_DF: '+str(peaks_df))
     print('PEAK TYPE: '+str(peak_type))
     print('PEAKS END: '+str(np.array(peaks_df['end'])))
     print('PEAKS START: '+str(np.array(peaks_df['start'])))
-    p1 = dpu.plotHistogram( np.abs(np.array(peaks_df['end'].astype('int64') - peaks_df['start'].astype('int64'))), 'Peak Lengths', 'Count', 'Distribution of Peak Lengths for {}'.format(peak_type))
+    p1 = dpu.plotHistogram( np.abs(np.array(peaks_df['end'].astype('int64') - peaks_df['start'].astype('int64'))), 'Peak Lengths, {}'.format(sample_id), 'Count', '{}: Distribution of Peak Lengths'.format(peak_type.upper()))
     return p1.getFigureObject()

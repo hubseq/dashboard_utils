@@ -15,7 +15,7 @@ SCRATCH_DIR = STATIC_PATH
 DASH_STYLESHEETS = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 ROOT_FOLDER = 's3://'
 
-DASHBOARD_NAME_MAIN = 'Pipeline Data Analysis Dashboard'
+DASHBOARD_NAME_MAIN = 'HubSeq Data QC-Analysis Dashboard'
 
 
 def getSessionId( teamid, userid, pipelineid, IdFromTeamAndUser = True ):

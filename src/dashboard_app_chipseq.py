@@ -24,7 +24,7 @@ sys.path.append('global_utils/src/')
 import file_utils
 import global_keys
 
-external_stylesheets = dsu.DASH_STYLESHEETS
+# external_stylesheets = dsu.DASH_STYLESHEETS
 SERVER_PORT = '5000'
 # SESSION_ID = 'tempsession'
 
@@ -34,7 +34,7 @@ SERVER_PORT = '5000'
 ############################################################
 ## APP OBJECT AND SERVE FRONTEND LAYOUT
 ############################################################
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
 
 def serve_layout():
     global session_dfs

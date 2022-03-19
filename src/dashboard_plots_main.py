@@ -89,7 +89,7 @@ def defineCallbacks_mainDashboard(app):
     @app.callback(
         Output('choose-samples', 'options'),
         Input('choose-runs', 'value'),
-        State('choose-pipeline', 'value'),
+        Input('choose-pipeline', 'value'),
         State('teamid', 'key'),
         State('userid', 'key'))
     def CB_choose_samples(selected_runs, pipelineid, teamid, userid):
@@ -105,7 +105,7 @@ def defineCallbacks_mainDashboard(app):
         Output('choose-samples','value'),
         Input('choose-runs', 'value'),
         Input('choose-all-samples','value'),
-        State('choose-pipeline', 'value'),
+        Input('choose-pipeline', 'value'),
         State('teamid', 'key'),
         State('userid', 'key'))
     def CB_choose_all_samples( selected_runs, all_samples_checked, pipelineid, teamid, userid ):
