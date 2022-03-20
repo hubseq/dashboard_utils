@@ -25,7 +25,7 @@ import file_utils
 import global_keys
 
 external_stylesheets = dsu.DASH_STYLESHEETS
-SERVER_PORT = '5000'
+SERVER_PORT = '5003'
 # SESSION_ID = 'tempsession'
 
 # log files for each sample - has info about each pipeline run
