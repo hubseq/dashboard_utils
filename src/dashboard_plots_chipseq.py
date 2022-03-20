@@ -231,6 +231,7 @@ def defineCallbacks_peakAnalysisDashboard(app):
             # get sample data file paths and IDs
             # NOTE: docker is hardcoded - this need to change
             data_file_json_list = dfu.getSamples(dsu.ROOT_FOLDER, teamid, [userid], [pipelineid], selected_runs, selected_samples, ['macs2', 'homer'], ['^.broadPeak', '^.narrowPeak', '^.txt'] )
+            print('DATA FILE JSON LIST: '+str(data_file_json_list))
             data_files_remote = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_NAME, '')
             data_sample_ids = file_utils.getFromDictList(data_file_json_list, global_keys.KEY_FILE_ID, '')
             # ONLY update IF we have grabbed new data files
